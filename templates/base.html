@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}Almoxarifado{% endblock %}</title>
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- AdminLTE -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='AdminLTE-3.2.0/dist/css/adminlte.min.css') }}">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700" rel="stylesheet">
+</head>
+<body class="hold-transition sidebar-mini layout-fixed">
+<div class="wrapper">
+
+    <!-- NAVBAR -->
+    <nav class="main-header navbar navbar-expand navbar-dark navbar-dark" style="background-color:#343a40;">
+        <ul class="navbar-nav">
+            <li class="nav-item">
+                <a class="nav-link" data-widget="pushmenu" href="#"><i class="fas fa-bars"></i></a>
+            </li>
+            <li class="nav-item d-none d-sm-inline-block">
+                <span class="nav-link font-weight-bold">📦 ALMOXARIFADO</span>
+            </li>
+        </ul>
+        <ul class="navbar-nav ml-auto">
+            {% if alertas_count > 0 %}
+            <li class="nav-item">
+                <a class="nav-link" href="/alertas">
+                    <i class="fas fa-bell"></i>
+                    <span class="badge badge-danger navbar-badge">{{ alertas_count }}</span>
+                </a>
+            </li>
+            {% endif %}
+        </ul>
+    </nav>
+
+    <!-- SIDEBAR -->
+    <aside class="main-sidebar sidebar-dark-olive elevation-4">
+        <a href="/" class="brand-link" style="background-color:#2d3436;">
+            <i class="fas fa-boxes brand-image" style="font-size:24px; margin:8px 10px; color:#fdcb6e;"></i>
+            <span class="brand-text font-weight-bold" style="color:#fdcb6e;">ESTOQUE</span>
+        </a>
+
+        <div class="sidebar">
+            <div class="user-panel mt-3 pb-3 mb-3 d-flex">
+                <div class="image">
+                    <i class="fas fa-user-circle fa-2x" style="color:#b2bec3; margin-left:5px;"></i>
+                </div>
+                <div class="info">
+                    <a href="#" class="d-block" style="color:#dfe6e9;">Administrador</a>
+                </div>
+            </div>
+
+            <nav class="mt-2">
+                <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu">
+
+                    <li class="nav-item">
+                        <a href="/" class="nav-link {% if request.path == '/' %}active{% endif %}">
+                            <i class="nav-icon fas fa-tachometer-alt"></i>
+                            <p>Lançamentos</p>
+                        </a>
+                    </li>
+
+                    <li class="nav-item">
+                        <a href="/cadastro" class="nav-link {% if request.path == '/cadastro' %}active{% endif %}">
+                            <i class="nav-icon fas fa-edit"></i>
+                            <p>Cadastros</p>
+                        </a>
+                    </li>
+
+                    <li class="nav-item">
+                        <a href="/historico" class="nav-link {% if request.path == '/historico' %}active{% endif %}">
+                            <i class="nav-icon fas fa-history"></i>
+                            <p>Histórico</p>
+                        </a>
+                    </li>
+
+                    <li class="nav-item">
+                        <a href="/alertas" class="nav-link {% if request.path == '/alertas' %}active{% endif %}">
+                            <i class="nav-icon fas fa-exclamation-triangle" style="color:#fdcb6e;"></i>
+                            <p>
+                                Estoque Baixo
+                                {% if alertas_count > 0 %}
+                                <span class="badge badge-danger right">{{ alertas_count }}</span>
+                                {% endif %}
+                            </p>
+                        </a>
+                    </li>
+
+                </ul>
+            </nav>
+        </div>
+    </aside>
+
+    <!-- CONTEÚDO -->
+    <div class="content-wrapper" style="background-color:#f4f4f9;">
+        <div class="content-header">
+            <div class="container-fluid">
+                <h1 class="m-0" style="color:#343a40;">{% block page_title %}{% endblock %}</h1>
+            </div>
+        </div>
+        <section class="content">
+            <div class="container-fluid">
+                {% block content %}{% endblock %}
+            </div>
+        </section>
+    </div>
+
+    <!-- FOOTER -->
+    <footer class="main-footer">
+        <strong>Sistema de Controle de Estoque</strong>
+        <div class="float-right d-none d-sm-inline-block">
+            <b>Versão</b> 2.0
+        </div>
+    </footer>
+
+</div>
+
+<!-- jQuery -->
+<script src="{{ url_for('static', filename='AdminLTE-3.2.0/plugins/jquery/jquery.min.js') }}"></script>
+<!-- Bootstrap -->
+<script src="{{ url_for('static', filename='AdminLTE-3.2.0/plugins/bootstrap/js/bootstrap.bundle.min.js') }}"></script>
+<!-- AdminLTE -->
+<script src="{{ url_for('static', filename='AdminLTE-3.2.0/dist/js/adminlte.min.js') }}"></script>
+
+{% block scripts %}{% endblock %}
+</body>
+</html>

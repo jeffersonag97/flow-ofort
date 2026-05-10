@@ -1,0 +1,151 @@
+{% extends "base.html" %}
+{% block title %}Lançamentos | Almoxarifado{% endblock %}
+{% block page_title %}📥 Lançamento de Estoque{% endblock %}
+
+{% block content %}
+
+<!-- CARDS DE RESUMO -->
+<div class="row mb-3">
+    <div class="col-md-4">
+        <div class="small-box bg-success">
+            <div class="inner">
+                <h3>{{ produtos|length }}</h3>
+                <p>Produtos Cadastrados</p>
+            </div>
+            <div class="icon"><i class="fas fa-boxes"></i></div>
+            <a href="/cadastro" class="small-box-footer">Ver cadastros <i class="fas fa-arrow-circle-right"></i></a>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="small-box bg-info">
+            <div class="inner">
+                <h3>{{ saidas|length }}</h3>
+                <p>Movimentações Recentes</p>
+            </div>
+            <div class="icon"><i class="fas fa-exchange-alt"></i></div>
+            <a href="/historico" class="small-box-footer">Ver histórico <i class="fas fa-arrow-circle-right"></i></a>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="small-box {% if alertas_count > 0 %}bg-danger{% else %}bg-secondary{% endif %}">
+            <div class="inner">
+                <h3>{{ alertas_count }}</h3>
+                <p>Itens com Estoque Baixo</p>
+            </div>
+            <div class="icon"><i class="fas fa-exclamation-triangle"></i></div>
+            <a href="/alertas" class="small-box-footer">Ver alertas <i class="fas fa-arrow-circle-right"></i></a>
+        </div>
+    </div>
+</div>
+
+<!-- FORMULÁRIO DE LANÇAMENTO -->
+<div class="row">
+    <div class="col-md-5">
+        <div class="card card-primary card-outline">
+            <div class="card-header">
+                <h3 class="card-title"><i class="fas fa-pencil-alt"></i> Registrar Movimentação</h3>
+            </div>
+            <div class="card-body">
+                <form action="/movimentar" method="POST">
+                    <div class="form-group">
+                        <label>🔍 Buscar Produto:</label>
+                        <input type="text" id="busca_produto" class="form-control" onkeyup="filtrarProdutos()" placeholder="Digite o nome...">
+                    </div>
+                    <div class="form-group">
+                        <label>Produto:</label>
+                        <select name="produto_id" id="lista_produtos" class="form-control" required>
+                            {% for p in produtos %}
+                            <option value="{{ p['id'] }}">{{ p['nome'] }} (Saldo: {{ p['estoque_atual'] }}) | {{ p['localizacao'] }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Quantidade:</label>
+                        <input type="number" name="quantidade" class="form-control" min="1" required placeholder="Ex: 10">
+                    </div>
+                    <div class="form-group">
+                        <label>Funcionário:</label>
+                        <select name="funcionario_id" class="form-control" required>
+                            {% for f in funcionarios %}
+                            <option value="{{ f['id'] }}">{{ f['nome'] }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="row">
+                        <div class="col-6">
+                            <button type="submit" name="tipo" value="ENTRADA" class="btn btn-success btn-block btn-lg">
+                                <i class="fas fa-arrow-down"></i> ENTRADA
+                            </button>
+                        </div>
+                        <div class="col-6">
+                            <button type="submit" name="tipo" value="SAIDA" class="btn btn-danger btn-block btn-lg">
+                                <i class="fas fa-arrow-up"></i> SAÍDA
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- ÚLTIMAS MOVIMENTAÇÕES -->
+    <div class="col-md-7">
+        <div class="card card-secondary card-outline">
+            <div class="card-header">
+                <h3 class="card-title"><i class="fas fa-history"></i> Últimas Movimentações</h3>
+                <div class="card-tools">
+                    <a href="/historico" class="btn btn-sm btn-default">Ver tudo</a>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                <table class="table table-sm table-hover">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Tipo</th>
+                            <th>Produto</th>
+                            <th>Qtd</th>
+                            <th>Quem</th>
+                            <th>Data</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for s in saidas %}
+                        <tr>
+                            <td><small class="text-muted">#{{ s['id'] }}</small></td>
+                            <td>
+                                {% if s['tipo'] == 'ENTRADA' %}
+                                <span class="badge badge-success">ENTRADA</span>
+                                {% else %}
+                                <span class="badge badge-danger">SAÍDA</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ s['produto'] }}</td>
+                            <td><strong>{{ s['quantidade'] }}</strong></td>
+                            <td>{{ s['quem'] }}</td>
+                            <td><small>{{ s['data_hora'] }}</small></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+function filtrarProdutos() {
+    var input = document.getElementById("busca_produto");
+    var filter = input.value.toUpperCase();
+    var select = document.getElementById("lista_produtos");
+    var options = select.getElementsByTagName("option");
+    for (var i = 0; i < options.length; i++) {
+        var txt = options[i].textContent || options[i].innerText;
+        options[i].style.display = txt.toUpperCase().indexOf(filter) > -1 ? "" : "none";
+    }
+}
+</script>
+{% endblock %}

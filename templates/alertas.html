@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}Estoque Baixo | Almoxarifado{% endblock %}
+{% block page_title %}⚠ Itens com Estoque Baixo{% endblock %}
+
+{% block content %}
+{% if produtos %}
+<div class="card card-danger card-outline">
+    <div class="card-header">
+        <h3 class="card-title">
+            <i class="fas fa-exclamation-triangle text-danger"></i>
+            {{ produtos|length }} item(s) precisam de reposição
+        </h3>
+    </div>
+    <div class="card-body p-0">
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th>Código</th>
+                    <th>Produto</th>
+                    <th>Localização</th>
+                    <th>Saldo Atual</th>
+                    <th>Mínimo</th>
+                    <th>Situação</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for p in produtos %}
+                <tr class="table-danger">
+                    <td><code>{{ p['codigo'] or '—' }}</code></td>
+                    <td><strong>{{ p['nome'] }}</strong></td>
+                    <td>{{ p['localizacao'] }}</td>
+                    <td><strong class="text-danger">{{ p['estoque_atual'] }}</strong></td>
+                    <td>{{ p['estoque_minimo'] }}</td>
+                    <td>
+                        {% if p['estoque_atual'] == 0 %}
+                        <span class="badge badge-dark">🚨 ZERADO</span>
+                        {% else %}
+                        <span class="badge badge-danger">⚠ BAIXO</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% else %}
+<div class="card">
+    <div class="card-body text-center p-5">
+        <i class="fas fa-check-circle fa-4x text-success mb-3"></i>
+        <h4 class="text-success">Tudo certo!</h4>
+        <p class="text-muted">Nenhum item está abaixo do estoque mínimo.</p>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

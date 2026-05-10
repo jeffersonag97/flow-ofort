@@ -1,0 +1,186 @@
+{% extends "base.html" %}
+{% block title %}Cadastros | Almoxarifado{% endblock %}
+{% block page_title %}⚙ Cadastros{% endblock %}
+
+{% block content %}
+<div class="row">
+    <!-- CADASTRO DE PRODUTO -->
+    <div class="col-12">
+        <div class="card card-primary card-outline">
+            <div class="card-header">
+                <h3 class="card-title"><i class="fas fa-plus"></i> Cadastrar Novo Produto</h3>
+            </div>
+            <div class="card-body">
+                <form action="/cadastrar_produto" method="POST">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label>Nome do Produto:</label>
+                                <input type="text" name="nome" class="form-control" required placeholder="Ex: Fita de Borda">
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="form-group">
+                                <label>Código do Produto:</label>
+                                <input type="text" name="codigo" class="form-control" placeholder="Ex: FTB-001">
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="form-group">
+                                <label>Localização:</label>
+                                <input type="text" name="localizacao" class="form-control" placeholder="Ex: Rua A / Nível 2">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-2">
+                            <div class="form-group">
+                                <label>Estoque Inicial:</label>
+                                <input type="number" name="estoque_inicial" class="form-control" min="0" value="0">
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="form-group">
+                                <label>Estoque Mínimo:</label>
+                                <input type="number" name="estoque_minimo" class="form-control" min="0" placeholder="Ex: 5">
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="form-group">
+                                <label>&nbsp;</label>
+                                <button type="submit" class="btn btn-primary btn-block">
+                                    <i class="fas fa-plus"></i> Cadastrar Produto
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- LISTA DE PRODUTOS -->
+    <div class="col-12">
+        <div class="card card-secondary card-outline">
+            <div class="card-header">
+                <h3 class="card-title"><i class="fas fa-list"></i> Produtos Cadastrados</h3>
+            </div>
+            <div class="card-body p-0">
+                <table class="table table-hover table-sm">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Código</th>
+                            <th>Nome</th>
+                            <th>Localização</th>
+                            <th>Saldo Atual</th>
+                            <th>Mínimo</th>
+                            <th>Status</th>
+                            <th>Ação</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for p in produtos %}
+                        <tr>
+                            <td><small class="text-muted">#{{ p['id'] }}</small></td>
+                            <td><code>{{ p['codigo'] or '—' }}</code></td>
+                            <td>{{ p['nome'] }}</td>
+                            <td>{{ p['localizacao'] }}</td>
+                            <td><strong>{{ p['estoque_atual'] }}</strong></td>
+                            <td>{{ p['estoque_minimo'] }}</td>
+                            <td>
+                                {% if p['estoque_atual'] <= p['estoque_minimo'] and p['estoque_minimo'] > 0 %}
+                                <span class="badge badge-danger">⚠ BAIXO</span>
+                                {% else %}
+                                <span class="badge badge-success">✔ OK</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                  <a href="/editar_produto/{{ p['id'] }}" class="btn btn-warning btn-sm mr-1">
+                                <i class="fas fa-edit"></i>
+                                </a>
+                                <a href="/excluir_produto/{{ p['id'] }}" class="btn btn-danger btn-sm"
+                                   onclick="return confirm('Confirma exclusão?')">
+                                    <i class="fas fa-trash"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- CADASTRO DE FUNCIONÁRIO -->
+    <div class="col-12">
+        <div class="card card-success card-outline">
+            <div class="card-header">
+                <h3 class="card-title"><i class="fas fa-user-plus"></i> Cadastrar Novo Funcionário</h3>
+            </div>
+            <div class="card-body">
+                <form action="/cadastrar_funcionario" method="POST">
+                    <div class="row">
+                        <div class="col-md-5">
+                            <div class="form-group">
+                                <label>Nome Completo:</label>
+                                <input type="text" name="nome" class="form-control" required placeholder="Ex: Carlos Souza">
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label>Cargo / Setor:</label>
+                                <input type="text" name="cargo" class="form-control" placeholder="Ex: Manutenção">
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="form-group">
+                                <label>&nbsp;</label>
+                                <button type="submit" class="btn btn-success btn-block">
+                                    <i class="fas fa-plus"></i> Cadastrar Funcionário
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- LISTA DE FUNCIONÁRIOS -->
+    <div class="col-12">
+        <div class="card card-secondary card-outline">
+            <div class="card-header">
+                <h3 class="card-title"><i class="fas fa-users"></i> Funcionários Cadastrados</h3>
+            </div>
+            <div class="card-body p-0">
+                <table class="table table-hover table-sm">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Nome</th>
+                            <th>Cargo / Setor</th>
+                            <th>Ação</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for f in funcionarios %}
+                        <tr>
+                            <td><small class="text-muted">#{{ f['id'] }}</small></td>
+                            <td>{{ f['nome'] }}</td>
+                            <td>{{ f['cargo'] }}</td>
+                            <td>
+                                <a href="/excluir_funcionario/{{ f['id'] }}" class="btn btn-danger btn-sm"
+                                   onclick="return confirm('Confirma exclusão?')">
+                                    <i class="fas fa-trash"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
