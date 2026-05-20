@@ -391,6 +391,210 @@ def salvar_produto(id):
     except Exception as e:
         flash(f'❌ Erro ao salvar: {str(e)}', 'danger')
         return redirect(url_for('editar_produto', id=id))
+    
+@app.route('/comprovante/<int:id>')
+def comprovante(id):
+    try:
+        with conectar() as conn:
+            movimentacao = conn.execute('''
+                SELECT m.id, m.tipo, m.quantidade, m.data_hora,
+                       p.nome as produto, p.codigo as codigo,
+                       p.localizacao as localizacao,
+                       f.nome as funcionario, f.cargo as cargo
+                FROM movimentacoes m
+                JOIN produtos p ON m.produto_id = p.id
+                JOIN funcionarios f ON m.funcionario_id = f.id
+                WHERE m.id = ?
+            ''', (id,)).fetchone()
+        
+        if not movimentacao:
+            flash('❌ Movimentação não encontrada!', 'danger')
+            return redirect(url_for('historico'))
+        
+        return render_template('comprovante.html', m=movimentacao)
+    
+    except Exception as e:
+        flash(f'❌ Erro: {str(e)}', 'danger')
+        return redirect(url_for('historico'))
+
+
+@app.route('/inventario')
+def inventario():
+    try:
+        with conectar() as conn:
+            inventarios = conn.execute('''
+                SELECT * FROM inventarios ORDER BY id DESC
+            ''').fetchall()
+        
+        return render_template('inventario.html',
+                               inventarios=inventarios,
+                               alertas_count=get_alertas_count())
+    except Exception as e:
+        flash(f'❌ Erro: {str(e)}', 'danger')
+        return redirect(url_for('index'))
+
+
+@app.route('/inventario/novo', methods=['POST'])
+def novo_inventario():
+    try:
+        responsavel = request.form.get('responsavel', '').strip()
+        observacao = request.form.get('observacao', '').strip()
+
+        if not responsavel:
+            flash('❌ Informe o responsável!', 'danger')
+            return redirect(url_for('inventario'))
+
+        with conectar() as conn:
+            cursor = conn.execute('''
+                INSERT INTO inventarios (responsavel, observacao, status)
+                VALUES (?, ?, 'ABERTO')
+            ''', (responsavel, observacao))
+            inventario_id = cursor.lastrowid
+
+            # Já carrega todos os produtos com saldo atual do sistema
+            produtos = conn.execute('SELECT * FROM produtos').fetchall()
+            for p in produtos:
+                conn.execute('''
+                    INSERT INTO inventario_itens 
+                    (inventario_id, produto_id, estoque_sistema, estoque_contado, diferenca)
+                    VALUES (?, ?, ?, 0, 0)
+                ''', (inventario_id, p['id'], p['estoque_atual']))
+
+        flash('✅ Inventário iniciado com sucesso!', 'success')
+        return redirect(url_for('contar_inventario', id=inventario_id))
+
+    except Exception as e:
+        flash(f'❌ Erro: {str(e)}', 'danger')
+        return redirect(url_for('inventario'))
+
+
+@app.route('/inventario/<int:id>/contar')
+def contar_inventario(id):
+    try:
+        with conectar() as conn:
+            inv = conn.execute('SELECT * FROM inventarios WHERE id = ?', (id,)).fetchone()
+            itens = conn.execute('''
+                SELECT ii.id, ii.estoque_sistema, ii.estoque_contado, ii.diferenca, ii.ajustado,
+                       p.nome as produto, p.codigo, p.localizacao
+                FROM inventario_itens ii
+                JOIN produtos p ON ii.produto_id = p.id
+                WHERE ii.inventario_id = ?
+                ORDER BY p.localizacao, p.nome
+            ''', (id,)).fetchall()
+
+        print(f"DEBUG: inv={inv}, itens count={len(itens) if itens else 0}")
+        
+        if not inv:
+            flash(f'❌ Inventário {id} não encontrado!', 'danger')
+            return redirect(url_for('inventario'))
+
+        if not itens:
+            print(f"DEBUG: Sem itens para inventário {id}")
+            flash(f'❌ Inventário {id} não tem itens! Produtos cadastrados: verifique.', 'danger')
+            return redirect(url_for('inventario'))
+
+        return render_template('inventario_contar.html',
+                               inv=inv,
+                               itens=itens,
+                               alertas_count=get_alertas_count())
+    except Exception as e:
+        print(f"DEBUG ERRO: {e}")
+        import traceback
+        traceback.print_exc()
+        flash(f'❌ Erro detalhado: {str(e)}', 'danger')
+        return redirect(url_for('inventario'))
+
+
+@app.route('/inventario/<int:inv_id>/salvar_contagem', methods=['POST'])
+def salvar_contagem(inv_id):
+    try:
+        with conectar() as conn:
+            itens = conn.execute('''
+                SELECT ii.id, ii.estoque_sistema, ii.produto_id
+                FROM inventario_itens ii
+                WHERE ii.inventario_id = ?
+            ''', (inv_id,)).fetchall()
+
+            for item in itens:
+                contado = int(request.form.get(f'contado_{item["id"]}', 0) or 0)
+                diferenca = contado - item['estoque_sistema']
+                conn.execute('''
+                    UPDATE inventario_itens 
+                    SET estoque_contado = ?, diferenca = ?
+                    WHERE id = ?
+                ''', (contado, diferenca, item['id']))
+
+        flash('✅ Contagem salva com sucesso!', 'success')
+        return redirect(url_for('resultado_inventario', id=inv_id))
+
+    except Exception as e:
+        flash(f'❌ Erro: {str(e)}', 'danger')
+        return redirect(url_for('contar_inventario', id=inv_id))
+
+
+@app.route('/inventario/<int:id>/resultado')
+def resultado_inventario(id):
+    try:
+        with conectar() as conn:
+            inv = conn.execute('SELECT * FROM inventarios WHERE id = ?', (id,)).fetchone()
+            itens = conn.execute('''
+                SELECT ii.id, ii.estoque_sistema, ii.estoque_contado, ii.diferenca, ii.ajustado,
+                       p.id as produto_id, p.nome as produto, p.codigo, p.localizacao
+                FROM inventario_itens ii
+                JOIN produtos p ON ii.produto_id = p.id
+                WHERE ii.inventario_id = ?
+                ORDER BY ii.diferenca ASC
+            ''', (id,)).fetchall()
+
+        total_itens = len(itens)
+        com_divergencia = sum(1 for i in itens if i['diferenca'] != 0)
+        sem_divergencia = total_itens - com_divergencia
+
+        return render_template('inventario_resultado.html',
+                               inv=inv,
+                               itens=itens,
+                               total_itens=total_itens,
+                               com_divergencia=com_divergencia,
+                               sem_divergencia=sem_divergencia,
+                               alertas_count=get_alertas_count())
+    except Exception as e:
+        flash(f'❌ Erro: {str(e)}', 'danger')
+        return redirect(url_for('inventario'))
+
+
+@app.route('/inventario/<int:inv_id>/ajustar', methods=['POST'])
+def ajustar_inventario(inv_id):
+    try:
+        with conectar() as conn:
+            itens = conn.execute('''
+                SELECT ii.id, ii.produto_id, ii.estoque_contado, ii.diferenca
+                FROM inventario_itens ii
+                WHERE ii.inventario_id = ? AND ii.diferenca != 0 AND ii.ajustado = 0
+            ''', (inv_id,)).fetchall()
+
+            for item in itens:
+                # Atualiza o estoque do produto com o valor contado
+                conn.execute('''
+                    UPDATE produtos SET estoque_atual = ? WHERE id = ?
+                ''', (item['estoque_contado'], item['produto_id']))
+
+                # Marca o item como ajustado
+                conn.execute('''
+                    UPDATE inventario_itens SET ajustado = 1 WHERE id = ?
+                ''', (item['id'],))
+
+            # Fecha o inventário
+            conn.execute('''
+                UPDATE inventarios SET status = 'FECHADO' WHERE id = ?
+            ''', (inv_id,))
+
+        _alertas_cache['timestamp'] = None
+        flash('✅ Estoque ajustado e inventário fechado com sucesso!', 'success')
+        return redirect(url_for('resultado_inventario', id=inv_id))
+
+    except Exception as e:
+        flash(f'❌ Erro: {str(e)}', 'danger')
+        return redirect(url_for('resultado_inventario', id=inv_id))
 
 if __name__ == '__main__':
     app.run(debug=True)

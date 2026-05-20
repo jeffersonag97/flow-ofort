@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Comprovante #{{ m['id'] }}</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: Arial, sans-serif; background: #fff; color: #000; }
+
+        .pagina { width: 100%; max-width: 700px; margin: 30px auto; padding: 30px; }
+
+        /* Cabeçalho */
+        .cabecalho { display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid #000; padding-bottom: 15px; margin-bottom: 20px; }
+        .cabecalho h1 { font-size: 22px; text-transform: uppercase; }
+        .cabecalho .protocolo { text-align: right; }
+        .cabecalho .protocolo span { font-size: 28px; font-weight: bold; color: #c0392b; }
+        .cabecalho .protocolo small { display: block; font-size: 12px; color: #555; }
+
+        /* Tipo de movimentação */
+        .tipo-badge { 
+            display: inline-block; padding: 6px 20px; border-radius: 4px; 
+            font-weight: bold; font-size: 16px; margin-bottom: 20px;
+            text-transform: uppercase; letter-spacing: 1px;
+        }
+        .tipo-saida { background: #c0392b; color: white; }
+        .tipo-entrada { background: #27ae60; color: white; }
+
+        /* Dados */
+        .secao { margin-bottom: 20px; }
+        .secao h3 { font-size: 13px; text-transform: uppercase; color: #777; border-bottom: 1px solid #eee; padding-bottom: 5px; margin-bottom: 10px; letter-spacing: 1px; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .campo label { font-size: 11px; color: #888; text-transform: uppercase; display: block; }
+        .campo span { font-size: 15px; font-weight: bold; }
+
+        /* Assinatura */
+        .assinatura { margin-top: 40px; display: grid; grid-template-columns: 1fr 1fr; gap: 40px; }
+        .assinatura-box { border-top: 1px solid #000; padding-top: 8px; text-align: center; }
+        .assinatura-box p { font-size: 12px; color: #555; }
+        .assinatura-box strong { display: block; font-size: 13px; }
+        .linha-assinatura { height: 50px; }
+
+        /* Rodapé */
+        .rodape { margin-top: 30px; border-top: 1px solid #ddd; padding-top: 10px; font-size: 11px; color: #999; text-align: center; }
+
+        /* Botões — só aparecem na tela, não na impressão */
+        .acoes { text-align: center; margin-bottom: 25px; }
+        .acoes button, .acoes a { 
+            padding: 10px 25px; margin: 5px; border: none; border-radius: 4px; 
+            font-size: 15px; font-weight: bold; cursor: pointer; text-decoration: none;
+            display: inline-block;
+        }
+        .btn-imprimir { background: #2c3e50; color: white; }
+        .btn-voltar { background: #ecf0f1; color: #333; }
+
+        @media print {
+            .acoes { display: none; }
+            .pagina { margin: 0; padding: 20px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="pagina">
+
+    <!-- BOTÕES (só na tela) -->
+    <div class="acoes">
+        <button class="btn-imprimir" onclick="window.print()">
+            🖨 Imprimir / Salvar PDF
+        </button>
+        <a href="/historico" class="btn-voltar">← Voltar ao Histórico</a>
+    </div>
+
+    <!-- CABEÇALHO -->
+    <div class="cabecalho">
+        <div>
+            <h1>📦 Almoxarifado</h1>
+            <p style="font-size:13px; color:#555;">Comprovante de Movimentação</p>
+        </div>
+        <div class="protocolo">
+            <small>Protocolo Nº</small>
+            <span>#{{ m['id'] }}</span>
+        </div>
+    </div>
+
+    <!-- TIPO -->
+    <div>
+        <span class="tipo-badge tipo-{{ m['tipo']|lower }}">
+            {% if m['tipo'] == 'SAIDA' %}📤 Saída de Material{% else %}📥 Entrada de Material{% endif %}
+        </span>
+    </div>
+
+    <!-- DADOS DO MATERIAL -->
+    <div class="secao">
+        <h3>Material</h3>
+        <div class="grid">
+            <div class="campo">
+                <label>Produto</label>
+                <span>{{ m['produto'] }}</span>
+            </div>
+            <div class="campo">
+                <label>Código</label>
+                <span>{{ m['codigo'] or '—' }}</span>
+            </div>
+            <div class="campo">
+                <label>Quantidade</label>
+                <span>{{ m['quantidade'] }}</span>
+            </div>
+            <div class="campo">
+                <label>Localização</label>
+                <span>{{ m['localizacao'] or '—' }}</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- DADOS DO RESPONSÁVEL -->
+    <div class="secao">
+        <h3>Responsável</h3>
+        <div class="grid">
+            <div class="campo">
+                <label>Nome</label>
+                <span>{{ m['funcionario'] }}</span>
+            </div>
+            <div class="campo">
+                <label>Cargo / Setor</label>
+                <span>{{ m['cargo'] or '—' }}</span>
+            </div>
+            <div class="campo">
+                <label>Data / Hora</label>
+                <span>{{ m['data_hora'] }}</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- ASSINATURAS -->
+    <div class="assinatura">
+        <div class="assinatura-box">
+            <div class="linha-assinatura"></div>
+            <strong>{{ m['funcionario'] }}</strong>
+            <p>Assinatura do Responsável</p>
+        </div>
+        <div class="assinatura-box">
+            <div class="linha-assinatura"></div>
+            <strong>Almoxarifado</strong>
+            <p>Assinatura do Almoxarife</p>
+        </div>
+    </div>
+
+    <!-- RODAPÉ -->
+    <div class="rodape">
+        Documento gerado em {{ m['data_hora'] }} — Protocolo #{{ m['id'] }}
+    </div>
+
+</div>
+
+</body>
+</html>

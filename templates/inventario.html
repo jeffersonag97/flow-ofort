@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+{% block title %}Inventário | Almoxarifado{% endblock %}
+{% block page_title %}📋 Inventário{% endblock %}
+
+{% block content %}
+
+<!-- NOVO INVENTÁRIO -->
+<div class="card card-primary card-outline">
+    <div class="card-header">
+        <h3 class="card-title"><i class="fas fa-plus"></i> Iniciar Novo Inventário</h3>
+    </div>
+    <div class="card-body">
+        <form action="/inventario/novo" method="POST">
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="form-group">
+                        <label>Responsável:</label>
+                        <input type="text" name="responsavel" class="form-control" 
+                               required placeholder="Nome do responsável pela contagem">
+                    </div>
+                </div>
+                <div class="col-md-5">
+                    <div class="form-group">
+                        <label>Observação:</label>
+                        <input type="text" name="observacao" class="form-control" 
+                               placeholder="Ex: Inventário mensal de maio">
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="form-group">
+                        <label>&nbsp;</label>
+                        <button type="submit" class="btn btn-primary btn-block">
+                            <i class="fas fa-play"></i> Iniciar Inventário
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- HISTÓRICO DE INVENTÁRIOS -->
+<div class="card card-secondary card-outline">
+    <div class="card-header">
+        <h3 class="card-title"><i class="fas fa-history"></i> Inventários Realizados</h3>
+    </div>
+    <div class="card-body p-0">
+        {% if inventarios %}
+        <table class="table table-hover table-sm">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Data / Hora</th>
+                    <th>Responsável</th>
+                    <th>Observação</th>
+                    <th>Status</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for inv in inventarios %}
+                <tr>
+                    <td><small class="text-muted">#{{ inv['id'] }}</small></td>
+                    <td><small>{{ inv['data_hora'] }}</small></td>
+                    <td>{{ inv['responsavel'] }}</td>
+                    <td>{{ inv['observacao'] or '—' }}</td>
+                    <td>
+                        {% if inv['status'] == 'ABERTO' %}
+                        <span class="badge badge-warning">⏳ ABERTO</span>
+                        {% else %}
+                        <span class="badge badge-success">✔ FECHADO</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if inv['status'] == 'ABERTO' %}
+                        <a href="/inventario/{{ inv['id'] }}/contar" class="btn btn-warning btn-sm mr-1">
+                            <i class="fas fa-edit"></i> Contar
+                        </a>
+                        {% endif %}
+                        <a href="/inventario/{{ inv['id'] }}/resultado" class="btn btn-info btn-sm">
+                            <i class="fas fa-chart-bar"></i> Resultado
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="text-center p-5 text-muted">
+            <i class="fas fa-clipboard fa-3x mb-3"></i>
+            <p>Nenhum inventário realizado ainda.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+{% endblock %}

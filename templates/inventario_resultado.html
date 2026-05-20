@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+{% block title %}Resultado | Inventário #{{ inv['id'] }}{% endblock %}
+{% block page_title %}📊 Resultado — Inventário #{{ inv['id'] }}{% endblock %}
+
+{% block content %}
+
+<!-- RESUMO -->
+<div class="row mb-3">
+    <div class="col-md-4">
+        <div class="small-box bg-info">
+            <div class="inner">
+                <h3>{{ total_itens }}</h3>
+                <p>Total de Itens</p>
+            </div>
+            <div class="icon"><i class="fas fa-boxes"></i></div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="small-box bg-success">
+            <div class="inner">
+                <h3>{{ sem_divergencia }}</h3>
+                <p>Itens sem Divergência</p>
+            </div>
+            <div class="icon"><i class="fas fa-check"></i></div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="small-box {% if com_divergencia > 0 %}bg-danger{% else %}bg-success{% endif %}">
+            <div class="inner">
+                <h3>{{ com_divergencia }}</h3>
+                <p>Itens com Divergência</p>
+            </div>
+            <div class="icon"><i class="fas fa-exclamation-triangle"></i></div>
+        </div>
+    </div>
+</div>
+
+<!-- INFO DO INVENTÁRIO -->
+<div class="card card-outline card-secondary mb-3">
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-3">
+                <label class="text-muted" style="font-size:12px;">RESPONSÁVEL</label>
+                <p><strong>{{ inv['responsavel'] }}</strong></p>
+            </div>
+            <div class="col-md-3">
+                <label class="text-muted" style="font-size:12px;">DATA</label>
+                <p>{{ inv['data_hora'] }}</p>
+            </div>
+            <div class="col-md-3">
+                <label class="text-muted" style="font-size:12px;">STATUS</label>
+                <p>
+                    {% if inv['status'] == 'ABERTO' %}
+                    <span class="badge badge-warning">⏳ ABERTO</span>
+                    {% else %}
+                    <span class="badge badge-success">✔ FECHADO</span>
+                    {% endif %}
+                </p>
+            </div>
+            <div class="col-md-3">
+                {% if inv['status'] == 'ABERTO' and com_divergencia > 0 %}
+                <form action="/inventario/{{ inv['id'] }}/ajustar" method="POST">
+                    <label class="text-muted" style="font-size:12px;">AÇÃO</label><br>
+                    <button type="submit" class="btn btn-danger"
+                            onclick="return confirm('Confirma ajuste do estoque? Esta ação não pode ser desfeita.')">
+                        <i class="fas fa-sync"></i> Ajustar Estoque e Fechar
+                    </button>
+                </form>
+                {% elif inv['status'] == 'ABERTO' %}
+                <form action="/inventario/{{ inv['id'] }}/ajustar" method="POST">
+                    <label class="text-muted" style="font-size:12px;">AÇÃO</label><br>
+                    <button type="submit" class="btn btn-success"
+                            onclick="return confirm('Sem divergências. Confirma fechamento do inventário?')">
+                        <i class="fas fa-check"></i> Fechar Inventário
+                    </button>
+                </form>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- TABELA DE RESULTADOS -->
+<div class="card card-outline card-secondary">
+    <div class="card-header">
+        <h3 class="card-title"><i class="fas fa-table"></i> Resultado por Item</h3>
+    </div>
+    <div class="card-body p-0">
+        <table class="table table-hover table-sm">
+            <thead>
+                <tr>
+                    <th>Código</th>
+                    <th>Produto</th>
+                    <th>Localização</th>
+                    <th>Sistema</th>
+                    <th>Contado</th>
+                    <th>Diferença</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in itens %}
+                <tr class="{% if item['diferenca'] < 0 %}table-danger{% elif item['diferenca'] > 0 %}table-warning{% endif %}">
+                    <td><code>{{ item['codigo'] or '—' }}</code></td>
+                    <td>{{ item['produto'] }}</td>
+                    <td><small>{{ item['localizacao'] or '—' }}</small></td>
+                    <td>{{ item['estoque_sistema'] }}</td>
+                    <td><strong>{{ item['estoque_contado'] }}</strong></td>
+                    <td>
+                        {% if item['diferenca'] > 0 %}
+                        <span class="text-warning font-weight-bold">+{{ item['diferenca'] }}</span>
+                        {% elif item['diferenca'] < 0 %}
+                        <span class="text-danger font-weight-bold">{{ item['diferenca'] }}</span>
+                        {% else %}
+                        <span class="text-success">✔ OK</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if item['ajustado'] %}
+                        <span class="badge badge-success">Ajustado</span>
+                        {% elif item['diferenca'] != 0 %}
+                        <span class="badge badge-danger">Divergente</span>
+                        {% else %}
+                        <span class="badge badge-success">OK</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% endblock %}

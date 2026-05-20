@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+{% block title %}Contagem de Inventário | Almoxarifado{% endblock %}
+{% block page_title %}📋 Contagem - Inventário #{{ inv['id'] }}{% endblock %}
+
+{% block content %}
+
+<!-- INFORMAÇÕES DO INVENTÁRIO -->
+<div class="row mb-3">
+    <div class="col-md-12">
+        <div class="card card-info card-outline">
+            <div class="card-header">
+                <h3 class="card-title">
+                    <i class="fas fa-info-circle"></i>
+                    Informações do Inventário
+                </h3>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3">
+                        <strong>ID:</strong> #{{ inv['id'] }}<br>
+                        <strong>Responsável:</strong> {{ inv['responsavel'] }}<br>
+                    </div>
+                    <div class="col-md-3">
+                        <strong>Data/Hora:</strong> {{ inv['data_hora'] }}<br>
+                        <strong>Status:</strong> <span class="badge badge-warning">⏳ {{ inv['status'] }}</span>
+                    </div>
+                    <div class="col-md-6">
+                        <strong>Observação:</strong> {{ inv['observacao'] or 'Nenhuma' }}<br>
+                        <strong>Total de itens:</strong> {{ itens|length }}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- TABELA DE CONTAGEM -->
+<form method="POST" action="/inventario/{{ inv['id'] }}/salvar_contagem">
+    <div class="card card-primary">
+        <div class="card-header">
+            <h3 class="card-title">
+                <i class="fas fa-barcode"></i>
+                Itens para Contar
+            </h3>
+        </div>
+        <div class="card-body p-0">
+            <table class="table table-sm table-striped table-hover">
+                <thead class="bg-light">
+                    <tr>
+                        <th style="width: 5%">#</th>
+                        <th style="width: 15%">Código</th>
+                        <th style="width: 25%">Produto</th>
+                        <th style="width: 20%">Localização</th>
+                        <th style="width: 15%">Saldo Sistema</th>
+                        <th style="width: 15%">Contado</th>
+                        <th style="width: 5%">Diferença</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in itens %}
+                    <tr>
+                        <td><small class="text-muted">{{ loop.index }}</small></td>
+                        <td><small><code>{{ item['codigo'] or '-' }}</code></small></td>
+                        <td><strong>{{ item['produto'] }}</strong></td>
+                        <td><small>{{ item['localizacao'] or '-' }}</small></td>
+                        <td class="text-center">
+                            <strong class="text-info">{{ item['estoque_sistema'] }}</strong>
+                        </td>
+                        <td class="text-center">
+                            <input 
+                                type="number" 
+                                name="contado_{{ item['id'] }}" 
+                                class="form-control form-control-sm text-center contado-input" 
+                                value="0"
+                                min="0"
+                                data-sistema="{{ item['estoque_sistema'] }}"
+                                required>
+                        </td>
+                        <td class="text-center diferenca-cell">
+                            <small class="text-muted">-</small>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <div class="card-footer">
+            <a href="/inventario" class="btn btn-secondary">
+                <i class="fas fa-times"></i> Cancelar
+            </a>
+            <button type="submit" class="btn btn-primary float-right">
+                <i class="fas fa-save"></i> Salvar Contagem
+            </button>
+        </div>
+    </div>
+</form>
+
+<script>
+document.querySelectorAll('.contado-input').forEach(input => {
+    input.addEventListener('change', function() {
+        const sistema = parseInt(this.dataset.sistema);
+        const contado = parseInt(this.value) || 0;
+        const diferenca = contado - sistema;
+        const diferencaCell = this.closest('tr').querySelector('.diferenca-cell');
+        
+        if (diferenca === 0) {
+            diferencaCell.innerHTML = '<small class="text-muted">0</small>';
+        } else if (diferenca > 0) {
+            diferencaCell.innerHTML = `<small class="text-success">+${diferenca}</small>`;
+        } else {
+            diferencaCell.innerHTML = `<small class="text-danger">${diferenca}</small>`;
+        }
+    });
+});
+</script>
+
+{% endblock %}

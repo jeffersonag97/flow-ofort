@@ -113,27 +113,33 @@
                     <th>Quantidade</th>
                     <th>Funcionário</th>
                     <th>Data / Hora</th>
+                    <th>Comprovante</th>
                 </tr>
             </thead>
-            <tbody>
-                {% for m in movimentacoes %}
-                <tr>
-                    <td><small class="text-muted">#{{ m['id'] }}</small></td>
-                    <td>
-                        {% if m['tipo'] == 'ENTRADA' %}
-                        <span class="badge badge-success">📥 ENTRADA</span>
-                        {% else %}
-                        <span class="badge badge-danger">📤 SAÍDA</span>
-                        {% endif %}
-                    </td>
-                    <td><code>{{ m['codigo'] or '—' }}</code></td>
-                    <td>{{ m['produto'] }}</td>
-                    <td><strong>{{ m['quantidade'] }}</strong></td>
-                    <td>{{ m['funcionario'] }}</td>
-                    <td><small>{{ m['data_hora'] }}</small></td>
-                </tr>
-                {% endfor %}
-            </tbody>
+<tbody>
+    {% for m in movimentacoes %}
+    <tr>
+        <td><small class="text-muted">#{{ m['id'] }}</small></td>
+        <td>
+            {% if m['tipo'] == 'ENTRADA' %}
+            <span class="badge badge-success">📥 ENTRADA</span>
+            {% else %}
+            <span class="badge badge-danger">📤 SAÍDA</span>
+            {% endif %}
+        </td>
+        <td><code>{{ m['codigo'] or '—' }}</code></td>
+        <td>{{ m['produto'] }}</td>
+        <td><strong>{{ m['quantidade'] }}</strong></td>
+        <td>{{ m['funcionario'] }}</td>
+        <td><small>{{ m['data_hora'] }}</small></td>
+        <td>
+            <a href="/comprovante/{{ m['id'] }}" target="_blank" class="btn btn-sm btn-dark">
+                <i class="fas fa-print"></i>
+            </a>
+        </td>
+    </tr>
+    {% endfor %}
+</tbody>
         </table>
         {% else %}
         <div class="text-center p-5 text-muted">
