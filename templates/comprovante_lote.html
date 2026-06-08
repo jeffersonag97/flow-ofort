@@ -68,7 +68,7 @@
         <div class="protocolo-box">
             <span>Protocolos</span>
             <strong>#{{ movimentacoes[0]['id'] }} — #{{ movimentacoes[-1]['id'] }}</strong>
-            <span style="font-size:11px;">{{ movimentacoes[0]['data_hora'] | formatar_data }}</span>
+            <span style="font-size:11px;">{{ movimentacoes[0]['data_hora'] }}</span>
         </div>
     </div>
 
@@ -91,7 +91,7 @@
             </div>
             <div class="campo">
                 <label>Data / Hora</label>
-                <span>{{ primeiro['data_hora'] | formatar_data }}</span>
+                <span>{{ primeiro['data_hora'] }}</span>
             </div>
         </div>
     </div>
@@ -144,7 +144,7 @@
     </div>
 
     <div class="rodape">
-        Documento gerado em {{ movimentacoes[0]['data_hora'] | formatar_data }} — 
+        Documento gerado em {{ movimentacoes[0]['data_hora'] }} — 
         {{ movimentacoes | length }} item(s) — 
         Protocolos #{{ movimentacoes[0]['id'] }} a #{{ movimentacoes[-1]['id'] }}
     </div>
