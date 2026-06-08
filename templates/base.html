@@ -58,6 +58,13 @@
                 <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu">
 
                     <li class="nav-item">
+                            <a href="/lancamento_lote" class="nav-link {% if request.path == '/lancamento_lote' %}active{% endif %}">
+                            <i class="nav-icon fas fa-layer-group"></i>
+                            <p>Lançamento em Lote</p>
+                        </a>
+                    </li>
+
+                    <li class="nav-item">
                         <a href="/" class="nav-link {% if request.path == '/' %}active{% endif %}">
                             <i class="nav-icon fas fa-tachometer-alt"></i>
                             <p>Lançamentos</p>

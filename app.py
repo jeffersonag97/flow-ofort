@@ -596,5 +596,118 @@ def ajustar_inventario(inv_id):
         flash(f'❌ Erro: {str(e)}', 'danger')
         return redirect(url_for('resultado_inventario', id=inv_id))
 
+@app.route('/lancamento_lote')
+def lancamento_lote():
+    try:
+        with conectar() as conn:
+            produtos = conn.execute('SELECT id, nome, codigo, estoque_atual, localizacao FROM produtos ORDER BY nome').fetchall()
+            funcionarios = conn.execute('SELECT * FROM funcionarios ORDER BY nome').fetchall()
+        return render_template('lancamento_lote.html',
+                               produtos=produtos,
+                               funcionarios=funcionarios,
+                               alertas_count=get_alertas_count())
+    except Exception as e:
+        flash(f'❌ Erro: {str(e)}', 'danger')
+        return redirect(url_for('index'))
+
+
+@app.route('/movimentar_lote', methods=['POST'])
+def movimentar_lote():
+    try:
+        func_id = request.form.get('funcionario_id')
+        tipo = request.form.get('tipo')
+        produto_ids = request.form.getlist('produto_id[]')
+        quantidades = request.form.getlist('quantidade[]')
+
+        if not func_id or not tipo:
+            flash('❌ Selecione o funcionário e o tipo!', 'danger')
+            return redirect(url_for('lancamento_lote'))
+
+        if not produto_ids:
+            flash('❌ Adicione pelo menos um produto!', 'danger')
+            return redirect(url_for('lancamento_lote'))
+
+        with conectar() as conn:
+            for prod_id, qtd_str in zip(produto_ids, quantidades):
+                qtd = int(qtd_str or 0)
+                if qtd <= 0:
+                    continue
+
+                if tipo == 'SAIDA':
+                    produto = conn.execute('SELECT estoque_atual, nome FROM produtos WHERE id = ?', (prod_id,)).fetchone()
+                    if produto['estoque_atual'] < qtd:
+                        flash(f"❌ Estoque insuficiente de '{produto['nome']}'! Disponível: {produto['estoque_atual']} | Solicitado: {qtd}", 'danger')
+                        return redirect(url_for('lancamento_lote'))
+
+                if tipo == 'ENTRADA':
+                    conn.execute('UPDATE produtos SET estoque_atual = estoque_atual + ? WHERE id = ?', (qtd, prod_id))
+                else:
+                    conn.execute('UPDATE produtos SET estoque_atual = estoque_atual - ? WHERE id = ?', (qtd, prod_id))
+
+                conn.execute('INSERT INTO movimentacoes (produto_id, funcionario_id, quantidade, tipo) VALUES (?, ?, ?, ?)',
+                             (prod_id, func_id, qtd, tipo))
+
+        _alertas_cache['timestamp'] = None
+        
+        # Pega os IDs das movimentações recém inseridas
+        with conectar() as conn:
+            ultimas = conn.execute('''
+                SELECT id FROM movimentacoes 
+                ORDER BY id DESC LIMIT ?
+            ''', (len(produto_ids),)).fetchall()
+        
+        ids_str = ','.join(str(m['id']) for m in reversed(ultimas))
+        flash(f'✅ {len(produto_ids)} item(s) lançados com sucesso!', 'success')
+        return redirect(url_for('comprovante_lote', ids=ids_str))
+
+    except Exception as e:
+        flash(f'❌ Erro: {str(e)}', 'danger')
+        return redirect(url_for('lancamento_lote'))
+    
+@app.route('/comprovante_lote', methods=['GET'])
+def comprovante_lote():
+    try:
+        ids = request.args.get('ids', '')
+        if not ids:
+            flash('❌ Nenhum item selecionado!', 'danger')
+            return redirect(url_for('historico'))
+        
+        lista_ids = []
+        for i in ids.split(','):
+            i = i.strip()
+            if i.isdigit():
+                lista_ids.append(int(i))
+        
+        if not lista_ids:
+            flash('❌ IDs inválidos!', 'danger')
+            return redirect(url_for('historico'))
+
+        placeholders = ','.join(['?' for _ in lista_ids])
+        
+        with conectar() as conn:
+            movimentacoes = conn.execute(f'''
+                SELECT m.id, m.tipo, m.quantidade, m.data_hora,
+                       p.nome as produto, p.codigo, p.localizacao, 
+                       COALESCE(p.unidade, 'UN') as unidade,
+                       f.nome as funcionario, f.cargo
+                FROM movimentacoes m
+                JOIN produtos p ON m.produto_id = p.id
+                JOIN funcionarios f ON m.funcionario_id = f.id
+                WHERE m.id IN ({placeholders})
+                ORDER BY m.id
+            ''', lista_ids).fetchall()
+        
+        if not movimentacoes:
+            flash('❌ Movimentações não encontradas!', 'danger')
+            return redirect(url_for('historico'))
+        
+        return render_template('comprovante_lote.html', 
+                               movimentacoes=movimentacoes,
+                               primeiro=movimentacoes[0])
+    except Exception as e:
+        flash(f'❌ Erro comprovante_lote: {str(e)}', 'danger')
+        return redirect(url_for('historico'))
+    
+
 if __name__ == '__main__':
     app.run(debug=True)

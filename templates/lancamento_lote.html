@@ -1,0 +1,284 @@
+{% extends "base.html" %}
+{% block title %}Lançamento em Lote | Almoxarifado{% endblock %}
+{% block page_title %}📦 Lançamento em Lote{% endblock %}
+
+{% block content %}
+
+<!-- CABEÇALHO DO LOTE -->
+<div class="card card-primary card-outline">
+    <div class="card-header">
+        <h3 class="card-title"><i class="fas fa-user"></i> Identificação</h3>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-5">
+                <div class="form-group">
+                    <label>Funcionário:</label>
+                    <select id="funcionario_id" class="form-control">
+                        <option value="">— Selecione —</option>
+                        {% for f in funcionarios %}
+                        <option value="{{ f['id'] }}">{{ f['nome'] }} {% if f['cargo'] %}({{ f['cargo'] }}){% endif %}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="form-group">
+                    <label>Tipo:</label>
+                    <select id="tipo" class="form-control">
+                        <option value="SAIDA">📤 SAÍDA</option>
+                        <option value="ENTRADA">📥 ENTRADA</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ADICIONAR ITEM -->
+<div class="card card-secondary card-outline">
+    <div class="card-header">
+        <h3 class="card-title"><i class="fas fa-plus"></i> Adicionar Item</h3>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-3">
+                <div class="form-group">
+                    <label>Buscar Produto:</label>
+                    <input type="text" id="busca" class="form-control" placeholder="Digite o nome ou código..." onkeyup="filtrarProdutos()">
+                </div>
+            </div>
+            <div class="col-md-5">
+                <div class="form-group">
+                    <label>Produto:</label>
+                    <select id="produto_select" class="form-control">
+                        {% for p in produtos %}
+                        <option value="{{ p['id'] }}" 
+                                data-nome="{{ p['nome'] }}"
+                                data-codigo="{{ p['codigo'] or '—' }}"
+                                data-saldo="{{ p['estoque_atual'] }}"
+                                data-local="{{ p['localizacao'] or '—' }}">
+                            {{ p['nome'] }} | Saldo: {{ p['estoque_atual'] }} | {{ p['localizacao'] or '—' }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            <div class="col-md-2">
+                <div class="form-group">
+                    <label>Quantidade:</label>
+                    <input type="number" id="quantidade_input" class="form-control" min="1" value="1">
+                </div>
+            </div>
+            <div class="col-md-2">
+                <div class="form-group">
+                    <label>&nbsp;</label>
+                    <button onclick="adicionarItem()" class="btn btn-primary btn-block">
+                        <i class="fas fa-plus"></i> Adicionar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- LISTA DE ITENS -->
+<div class="card card-warning card-outline">
+    <div class="card-header">
+        <h3 class="card-title"><i class="fas fa-list"></i> Itens do Lote</h3>
+        <div class="card-tools">
+            <span id="contador" class="badge badge-warning">0 itens</span>
+        </div>
+    </div>
+    <div class="card-body p-0">
+        <table class="table table-hover table-sm" id="tabela_itens">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Código</th>
+                    <th>Produto</th>
+                    <th>Localização</th>
+                    <th>Saldo Atual</th>
+                    <th>Qtd Solicitada</th>
+                    <th>Remover</th>
+                </tr>
+            </thead>
+            <tbody id="lista_itens">
+                <tr id="linha_vazia">
+                    <td colspan="7" class="text-center text-muted p-4">
+                        <i class="fas fa-inbox fa-2x mb-2"></i><br>
+                        Nenhum item adicionado ainda.
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- BOTÃO CONFIRMAR -->
+<div id="div_confirmar" style="display:none;">
+    <form id="form_lote" action="/movimentar_lote" method="POST">
+        <input type="hidden" name="funcionario_id" id="hidden_func">
+        <input type="hidden" name="tipo" id="hidden_tipo">
+        <div id="hidden_itens"></div>
+        <div class="row">
+            <div class="col-md-6">
+                <div class="callout callout-warning">
+                    <h5 id="resumo_texto"></h5>
+                </div>
+            </div>
+            <div class="col-md-6 text-right">
+                <button type="button" onclick="limparTudo()" class="btn btn-secondary btn-lg mr-2">
+                    <i class="fas fa-times"></i> Limpar Tudo
+                </button>
+                <button type="button" onclick="confirmarLote()" class="btn btn-success btn-lg">
+                    <i class="fas fa-check"></i> CONFIRMAR TUDO
+                </button>
+            </div>
+        </div>
+    </form>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Lista de itens em memória
+var itens = [];
+var contador = 0;
+
+function filtrarProdutos() {
+    var input = document.getElementById("busca");
+    var filter = input.value.toUpperCase();
+    var select = document.getElementById("produto_select");
+    var options = select.getElementsByTagName("option");
+    for (var i = 0; i < options.length; i++) {
+        var txt = options[i].textContent || options[i].innerText;
+        options[i].style.display = txt.toUpperCase().indexOf(filter) > -1 ? "" : "none";
+    }
+}
+
+function adicionarItem() {
+    var select = document.getElementById("produto_select");
+    var option = select.options[select.selectedIndex];
+    var qtd = parseInt(document.getElementById("quantidade_input").value);
+
+    if (!option || !option.value) {
+        alert('Selecione um produto!');
+        return;
+    }
+    if (!qtd || qtd <= 0) {
+        alert('Informe uma quantidade válida!');
+        return;
+    }
+
+    // Verifica se já está na lista
+    var jaExiste = itens.find(function(i) { return i.id == option.value; });
+    if (jaExiste) {
+        jaExiste.qtd += qtd;
+        renderizarTabela();
+        return;
+    }
+
+    contador++;
+    itens.push({
+        id: option.value,
+        nome: option.getAttribute('data-nome'),
+        codigo: option.getAttribute('data-codigo'),
+        saldo: option.getAttribute('data-saldo'),
+        local: option.getAttribute('data-local'),
+        qtd: qtd
+    });
+
+    document.getElementById("quantidade_input").value = 1;
+    document.getElementById("busca").value = '';
+    filtrarProdutos();
+    renderizarTabela();
+}
+
+function removerItem(index) {
+    itens.splice(index, 1);
+    renderizarTabela();
+}
+
+function renderizarTabela() {
+    var tbody = document.getElementById("lista_itens");
+    var divConfirmar = document.getElementById("div_confirmar");
+    var countBadge = document.getElementById("contador");
+
+    countBadge.textContent = itens.length + ' itens';
+
+    if (itens.length === 0) {
+        tbody.innerHTML = '<tr id="linha_vazia"><td colspan="7" class="text-center text-muted p-4"><i class="fas fa-inbox fa-2x mb-2"></i><br>Nenhum item adicionado ainda.</td></tr>';
+        divConfirmar.style.display = 'none';
+        return;
+    }
+
+    var html = '';
+    itens.forEach(function(item, index) {
+        var alertaSaldo = parseInt(item.saldo) < item.qtd ? 'class="table-danger"' : '';
+        html += '<tr ' + alertaSaldo + '>';
+        html += '<td>' + (index + 1) + '</td>';
+        html += '<td><code>' + item.codigo + '</code></td>';
+        html += '<td><strong>' + item.nome + '</strong></td>';
+        html += '<td><small>' + item.local + '</small></td>';
+        html += '<td>' + item.saldo + '</td>';
+        html += '<td><input type="number" class="form-control form-control-sm" style="width:80px;" value="' + item.qtd + '" min="1" onchange="atualizarQtd(' + index + ', this.value)"></td>';
+        html += '<td><button onclick="removerItem(' + index + ')" class="btn btn-danger btn-sm"><i class="fas fa-trash"></i></button></td>';
+        html += '</tr>';
+    });
+    tbody.innerHTML = html;
+
+    // Atualiza resumo
+    var tipo = document.getElementById("tipo").value;
+    var tipoTexto = tipo === 'SAIDA' ? 'SAÍDA' : 'ENTRADA';
+    document.getElementById("resumo_texto").innerHTML = 
+        '<i class="fas fa-info-circle"></i> ' + itens.length + ' produto(s) prontos para ' + tipoTexto;
+
+    divConfirmar.style.display = 'block';
+}
+
+function atualizarQtd(index, valor) {
+    itens[index].qtd = parseInt(valor) || 1;
+}
+
+function limparTudo() {
+    if (confirm('Deseja limpar todos os itens da lista?')) {
+        itens = [];
+        renderizarTabela();
+    }
+}
+
+function confirmarLote() {
+    var func_id = document.getElementById("funcionario_id").value;
+    var tipo = document.getElementById("tipo").value;
+
+    if (!func_id) {
+        alert('Selecione o funcionário antes de confirmar!');
+        return;
+    }
+    if (itens.length === 0) {
+        alert('Adicione pelo menos um item!');
+        return;
+    }
+
+    var tipoTexto = tipo === 'SAIDA' ? 'saída' : 'entrada';
+    if (!confirm('Confirma a ' + tipoTexto + ' de ' + itens.length + ' produto(s)?')) {
+        return;
+    }
+
+    // Monta o formulário e envia
+    document.getElementById("hidden_func").value = func_id;
+    document.getElementById("hidden_tipo").value = tipo;
+
+    var hiddenDiv = document.getElementById("hidden_itens");
+    hiddenDiv.innerHTML = '';
+    itens.forEach(function(item) {
+        hiddenDiv.innerHTML += '<input type="hidden" name="produto_id[]" value="' + item.id + '">';
+        hiddenDiv.innerHTML += '<input type="hidden" name="quantidade[]" value="' + item.qtd + '">';
+    });
+
+    document.getElementById("form_lote").submit();
+}
+</script>
+{% endblock %}

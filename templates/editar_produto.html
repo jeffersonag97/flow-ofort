@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% block title %}Editar Produto | Almoxarifado{% endblock %}
+{% block page_title %}✏ Editar Produto{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card card-warning card-outline">
+            <div class="card-header">
+                <h3 class="card-title">
+                    <i class="fas fa-edit"></i> 
+                    Editando: <strong>{{ produto['nome'] }}</strong>
+                </h3>
+            </div>
+            <div class="card-body">
+                <form action="/salvar_produto/{{ produto['id'] }}" method="POST">
+                    
+                    <div class="row">
+                        <div class="col-md-8">
+                            <div class="form-group">
+                                <label>Nome do Produto: <span class="text-danger">*</span></label>
+                                <input type="text" name="nome" class="form-control" 
+                                       value="{{ produto['nome'] }}" required>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label>Código do Produto:</label>
+                                <input type="text" name="codigo" class="form-control" 
+                                       value="{{ produto['codigo'] or '' }}">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-8">
+                            <div class="form-group">
+                                <label>Localização:</label>
+                                <input type="text" name="localizacao" class="form-control" 
+                                       value="{{ produto['localizacao'] or '' }}"
+                                       placeholder="Ex: Rua A / Nível 2">
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label>Estoque Mínimo (alerta):</label>
+                                <input type="number" name="estoque_minimo" class="form-control" 
+                                       min="0" value="{{ produto['estoque_minimo'] }}">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Saldo atual (somente leitura) -->
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label>Saldo Atual:</label>
+                                <div class="input-group">
+                                    <input type="text" class="form-control" 
+                                           value="{{ produto['estoque_atual'] }}" readonly>
+                                    <div class="input-group-append">
+                                        <span class="input-group-text">
+                                            <i class="fas fa-lock text-muted"></i>
+                                        </span>
+                                    </div>
+                                </div>
+                                <small class="text-muted">Altere o saldo via Lançamentos.</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <hr>
+
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-warning mr-2">
+                            <i class="fas fa-save"></i> Salvar Alterações
+                        </button>
+                        <a href="/cadastro" class="btn btn-secondary">
+                            <i class="fas fa-times"></i> Cancelar
+                        </a>
+                    </div>
+
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
