@@ -50,7 +50,7 @@
                     <i class="fas fa-user-circle fa-2x" style="color:#b2bec3; margin-left:5px;"></i>
                 </div>
                 <div class="info">
-                    <a href="#" class="d-block" style="color:#dfe6e9;">Administrador</a>
+                    <a href="#" class="d-block" style="color:#dfe6e9;"><a href="#" class="d-block" style="color:#dfe6e9;">{{ current_user.nome }}</a></a>
                 </div>
             </div>
 
@@ -102,6 +102,13 @@
                             <i class="nav-icon fas fa-clipboard-list"></i>
                             <p>Inventário</p>
                         </a>
+                    </li>
+
+                    <li class="nav-item">
+                        <a href="/logout" class="nav-link">
+                            <i class="nav-icon fas fa-sign-out-alt text-danger"></i>
+                            <p>Sair</p>
+                       </a>
                     </li>
 
                 </ul>

@@ -1,10 +1,37 @@
-from flask import Flask, render_template, request, redirect, url_for, flash # type: ignore
+from flask import Flask, render_template, request, redirect, url_for, flash
+from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
+from werkzeug.security import check_password_hash, generate_password_hash
 import sqlite3
 from contextlib import contextmanager
 from datetime import datetime, timedelta
 
 app = Flask(__name__)
-app.secret_key = 'sua_chave_secreta_aqui'  # Necessário para usar flash messages
+app.secret_key = 'estoque@ofort2026#seguro'
+
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = 'login'
+login_manager.login_message = '❌ Faça login para acessar!'
+login_manager.login_message_category = 'danger'
+
+class Usuario(UserMixin):
+    def __init__(self, id, nome, login, nivel):
+        self.id = id
+        self.nome = nome
+        self.login = login
+        self.nivel = nivel
+
+@login_manager.user_loader
+def load_user(user_id):
+    try:
+        with conectar() as conn:
+            u = conn.execute('SELECT * FROM usuarios WHERE id = ?', (user_id,)).fetchone()
+        if u:
+            return Usuario(u['id'], u['nome'], u['login'], u['nivel'])
+    except:
+        return None
+
+_alertas_cache = {'count': 0, 'timestamp': None}
 
 # Cache para alertas (atualiza a cada 5 minutos)
 _alertas_cache = {'count': 0, 'timestamp': None}
@@ -50,6 +77,7 @@ def get_alertas_count(usar_cache=True):
         return 0
 
 @app.route('/')
+@login_required
 def index():
     try:
         with conectar() as conn:
@@ -79,6 +107,7 @@ def index():
 
 
 @app.route('/movimentar', methods=['POST'])
+@login_required
 def movimentar():
     try:
         prod_id = request.form.get('produto_id')
@@ -148,6 +177,7 @@ def movimentar():
         flash(f'❌ Erro ao processar: {str(e)}', 'danger')
         return redirect(url_for('index'))
 @app.route('/cadastro')
+@login_required
 def cadastro():
     try:
         with conectar() as conn:
@@ -166,6 +196,7 @@ def cadastro():
                                alertas_count=0)
 
 @app.route('/cadastrar_produto', methods=['POST'])
+@login_required
 def cadastrar_produto():
     try:
         nome = request.form.get('nome', '').strip()
@@ -203,6 +234,7 @@ def cadastrar_produto():
         return redirect(url_for('cadastro'))
 
 @app.route('/cadastrar_funcionario', methods=['POST'])
+@login_required
 def cadastrar_funcionario():
     try:
         nome = request.form.get('nome', '').strip()
@@ -226,6 +258,7 @@ def cadastrar_funcionario():
         return redirect(url_for('cadastro'))
 
 @app.route('/excluir_produto/<int:id>')
+@login_required
 def excluir_produto(id):
     try:
         with conectar() as conn:
@@ -246,6 +279,7 @@ def excluir_produto(id):
         return redirect(url_for('cadastro'))
 
 @app.route('/excluir_funcionario/<int:id>')
+@login_required
 def excluir_funcionario(id):
     try:
         with conectar() as conn:
@@ -264,6 +298,7 @@ def excluir_funcionario(id):
         flash(f'❌ Erro ao excluir funcionário: {str(e)}', 'danger')
         return redirect(url_for('cadastro'))
 @app.route('/historico')
+@login_required
 def historico():
     try:
         data_inicio = request.args.get('data_inicio', '')
@@ -326,6 +361,7 @@ def historico():
                                filtros={},
                                alertas_count=0)
 @app.route('/alertas')
+@login_required
 def alertas():
     try:
         with conectar() as conn:
@@ -344,6 +380,7 @@ def alertas():
                                produtos=[],
                                alertas_count=0)
 @app.route('/editar_produto/<int:id>')
+@login_required
 def editar_produto(id):
     try:
         with conectar() as conn:
@@ -361,6 +398,7 @@ def editar_produto(id):
         return redirect(url_for('cadastro'))
 
 @app.route('/salvar_produto/<int:id>', methods=['POST'])
+@login_required
 def salvar_produto(id):
     try:
         nome = request.form.get('nome', '').strip()
@@ -393,6 +431,7 @@ def salvar_produto(id):
         return redirect(url_for('editar_produto', id=id))
     
 @app.route('/comprovante/<int:id>')
+@login_required
 def comprovante(id):
     try:
         with conectar() as conn:
@@ -419,6 +458,7 @@ def comprovante(id):
 
 
 @app.route('/inventario')
+@login_required
 def inventario():
     try:
         with conectar() as conn:
@@ -435,6 +475,7 @@ def inventario():
 
 
 @app.route('/inventario/novo', methods=['POST'])
+@login_required
 def novo_inventario():
     try:
         responsavel = request.form.get('responsavel', '').strip()
@@ -469,6 +510,7 @@ def novo_inventario():
 
 
 @app.route('/inventario/<int:id>/contar')
+@login_required
 def contar_inventario(id):
     try:
         with conectar() as conn:
@@ -506,6 +548,7 @@ def contar_inventario(id):
 
 
 @app.route('/inventario/<int:inv_id>/salvar_contagem', methods=['POST'])
+@login_required
 def salvar_contagem(inv_id):
     try:
         with conectar() as conn:
@@ -533,6 +576,7 @@ def salvar_contagem(inv_id):
 
 
 @app.route('/inventario/<int:id>/resultado')
+@login_required
 def resultado_inventario(id):
     try:
         with conectar() as conn:
@@ -563,6 +607,7 @@ def resultado_inventario(id):
 
 
 @app.route('/inventario/<int:inv_id>/ajustar', methods=['POST'])
+@login_required
 def ajustar_inventario(inv_id):
     try:
         with conectar() as conn:
@@ -597,6 +642,7 @@ def ajustar_inventario(inv_id):
         return redirect(url_for('resultado_inventario', id=inv_id))
 
 @app.route('/lancamento_lote')
+@login_required
 def lancamento_lote():
     try:
         with conectar() as conn:
@@ -612,6 +658,7 @@ def lancamento_lote():
 
 
 @app.route('/movimentar_lote', methods=['POST'])
+@login_required
 def movimentar_lote():
     try:
         func_id = request.form.get('funcionario_id')
@@ -665,6 +712,7 @@ def movimentar_lote():
         return redirect(url_for('lancamento_lote'))
     
 @app.route('/comprovante_lote', methods=['GET'])
+@login_required
 def comprovante_lote():
     try:
         ids = request.args.get('ids', '')
@@ -707,6 +755,46 @@ def comprovante_lote():
     except Exception as e:
         flash(f'❌ Erro comprovante_lote: {str(e)}', 'danger')
         return redirect(url_for('historico'))
+    
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if current_user.is_authenticated:
+        return redirect(url_for('index'))
+    
+    if request.method == 'POST':
+        login_input = request.form.get('login', '').strip()
+        senha = request.form.get('senha', '').strip()
+        
+        if not login_input or not senha:
+            flash('❌ Preencha todos os campos!', 'danger')
+            return render_template('login.html')
+        
+        try:
+            with conectar() as conn:
+                usuario = conn.execute(
+                    'SELECT * FROM usuarios WHERE login = ?', (login_input,)
+                ).fetchone()
+            
+            if usuario and check_password_hash(usuario['senha'], senha):
+                u = Usuario(usuario['id'], usuario['nome'], usuario['login'], usuario['nivel'])
+                login_user(u)
+                flash(f'✅ Bem-vindo, {usuario["nome"]}!', 'success')
+                return redirect(url_for('index'))
+            else:
+                flash('❌ Login ou senha incorretos!', 'danger')
+        except Exception as e:
+            flash(f'❌ Erro: {str(e)}', 'danger')
+    
+    return render_template('login.html')
+
+@app.route('/logout')
+@login_required
+def logout():
+    logout_user()
+    flash('✅ Sessão encerrada!', 'success')
+    return redirect(url_for('login'))
+
+
     
 
 if __name__ == '__main__':
