@@ -96,6 +96,14 @@
     </div>
 </div>
 
+<!-- BOTÃO COMPROVANTE EM LOTE -->
+<div class="mb-2" id="div_btn_lote" style="display:none;">
+    <button onclick="gerarComprovanteLote()" class="btn btn-dark">
+        <i class="fas fa-print"></i> Imprimir Comprovante dos Selecionados
+    </button>
+    <span id="qtd_selecionados" class="ml-2 text-muted"></span>
+</div>
+
 <!-- TABELA -->
 <div class="card card-secondary card-outline">
     <div class="card-header">
@@ -106,6 +114,7 @@
         <table class="table table-hover table-sm">
             <thead>
                 <tr>
+                    <th><input type="checkbox" id="selecionar_todos" onclick="selecionarTodos(this)"></th>
                     <th>Protocolo</th>
                     <th>Tipo</th>
                     <th>Código</th>
@@ -116,30 +125,31 @@
                     <th>Comprovante</th>
                 </tr>
             </thead>
-<tbody>
-    {% for m in movimentacoes %}
-    <tr>
-        <td><small class="text-muted">#{{ m['id'] }}</small></td>
-        <td>
-            {% if m['tipo'] == 'ENTRADA' %}
-            <span class="badge badge-success">📥 ENTRADA</span>
-            {% else %}
-            <span class="badge badge-danger">📤 SAÍDA</span>
-            {% endif %}
-        </td>
-        <td><code>{{ m['codigo'] or '—' }}</code></td>
-        <td>{{ m['produto'] }}</td>
-        <td><strong>{{ m['quantidade'] }}</strong></td>
-        <td>{{ m['funcionario'] }}</td>
-        <td><small>{{ m['data_hora'] }}</small></td>
-        <td>
-            <a href="/comprovante/{{ m['id'] }}" target="_blank" class="btn btn-sm btn-dark">
-                <i class="fas fa-print"></i>
-            </a>
-        </td>
-    </tr>
-    {% endfor %}
-</tbody>
+            <tbody>
+                {% for m in movimentacoes %}
+                <tr>
+                    <td><input type="checkbox" class="check_item" value="{{ m['id'] }}" onchange="atualizarSelecao()"></td>
+                    <td><small class="text-muted">#{{ m['id'] }}</small></td>
+                    <td>
+                        {% if m['tipo'] == 'ENTRADA' %}
+                        <span class="badge badge-success">📥 ENTRADA</span>
+                        {% else %}
+                        <span class="badge badge-danger">📤 SAÍDA</span>
+                        {% endif %}
+                    </td>
+                    <td><code>{{ m['codigo'] or '—' }}</code></td>
+                    <td>{{ m['produto'] }}</td>
+                    <td><strong>{{ m['quantidade'] }}</strong></td>
+                    <td>{{ m['funcionario'] }}</td>
+                    <td><small>{{ m['data_hora'] | formatar_data }}</small></td>
+                    <td>
+                        <a href="/comprovante/{{ m['id'] }}" target="_blank" class="btn btn-sm btn-dark">
+                            <i class="fas fa-print"></i>
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
         </table>
         {% else %}
         <div class="text-center p-5 text-muted">
@@ -150,4 +160,38 @@
     </div>
 </div>
 
+{% endblock %}
+
+{% block scripts %}
+<script>
+function selecionarTodos(checkbox) {
+    var checks = document.querySelectorAll('.check_item');
+    checks.forEach(function(c) { c.checked = checkbox.checked; });
+    atualizarSelecao();
+}
+
+function atualizarSelecao() {
+    var selecionados = document.querySelectorAll('.check_item:checked');
+    var btn = document.getElementById('div_btn_lote');
+    var qtd = document.getElementById('qtd_selecionados');
+
+    if (selecionados.length > 0) {
+        btn.style.display = 'block';
+        qtd.textContent = selecionados.length + ' item(s) selecionado(s)';
+    } else {
+        btn.style.display = 'none';
+        qtd.textContent = '';
+    }
+}
+
+function gerarComprovanteLote() {
+    var selecionados = document.querySelectorAll('.check_item:checked');
+    if (selecionados.length === 0) {
+        alert('Selecione pelo menos um item!');
+        return;
+    }
+    var ids = Array.from(selecionados).map(function(c) { return c.value; }).join(',');
+    window.open('/comprovante_lote?ids=' + ids, '_blank');
+}
+</script>
 {% endblock %}

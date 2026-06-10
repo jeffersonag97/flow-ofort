@@ -76,6 +76,24 @@ def get_alertas_count(usar_cache=True):
         print(f"Erro ao contar alertas: {e}")
         return 0
 
+@app.template_filter('formatar_data')
+def formatar_data(data):
+    if not data:
+        return '—'
+    try:
+        if isinstance(data, str):
+            for fmt in ('%Y-%m-%d %H:%M:%S', '%Y-%m-%d'):
+                try:
+                    data = datetime.strptime(data, fmt)
+                    break
+                except ValueError:
+                    continue
+        # Ajusta para horário de Brasília (UTC-3): adiciona -3 horas
+        data = data + timedelta(hours=-3)
+        return data.strftime('%d/%m/%Y %H:%M')
+    except Exception:
+        return str(data)
+
 @app.route('/')
 @login_required
 def index():
@@ -207,6 +225,7 @@ def cadastrar_produto():
             return redirect(url_for('cadastro'))
         
         localizacao = request.form.get('localizacao', '').strip()
+        descricao = request.form.get('descricao', '').strip()
         
         try:
             estoque_inicial = int(request.form.get('estoque_inicial', 0) or 0)
@@ -221,9 +240,9 @@ def cadastrar_produto():
 
         with conectar() as conn:
             conn.execute('''
-                INSERT INTO produtos (nome, codigo, localizacao, estoque_atual, estoque_minimo)
-                VALUES (?, ?, ?, ?, ?)
-            ''', (nome, codigo, localizacao, estoque_inicial, estoque_minimo))
+                INSERT INTO produtos (nome, codigo, localizacao, estoque_atual, estoque_minimo, descricao)
+                VALUES (?, ?, ?, ?, ?, ?)
+            ''', (nome, codigo, localizacao, estoque_inicial, estoque_minimo, descricao))
         
         _alertas_cache['timestamp'] = None
         flash(f'✅ Produto "{nome}" cadastrado com sucesso!', 'success')
@@ -404,6 +423,8 @@ def salvar_produto(id):
         nome = request.form.get('nome', '').strip()
         codigo = request.form.get('codigo', '').strip()
         localizacao = request.form.get('localizacao', '').strip()
+        descricao = request.form.get('descricao', '').strip()
+        
         
         try:
             estoque_minimo = int(request.form.get('estoque_minimo', 0) or 0)
@@ -418,9 +439,9 @@ def salvar_produto(id):
         with conectar() as conn:
             conn.execute('''
                 UPDATE produtos 
-                SET nome = ?, codigo = ?, localizacao = ?, estoque_minimo = ?
+                SET nome = ?, codigo = ?, localizacao = ?, estoque_minimo = ?, descricao = ?
                 WHERE id = ?
-            ''', (nome, codigo, localizacao, estoque_minimo, id))
+            ''', (nome, codigo, localizacao, estoque_minimo, descricao, id))
         
         _alertas_cache['timestamp'] = None
         flash(f'✅ Produto "{nome}" atualizado com sucesso!', 'success')
@@ -749,9 +770,22 @@ def comprovante_lote():
             flash('❌ Movimentações não encontradas!', 'danger')
             return redirect(url_for('historico'))
         
-        return render_template('comprovante_lote.html', 
-                               movimentacoes=movimentacoes,
-                               primeiro=movimentacoes[0])
+        # Formata as datas antes de enviar (ajusta para Brasília UTC-3)
+        movimentacoes_lista = []
+        for m in movimentacoes:
+            m_dict = dict(m)
+            try:
+                dt = datetime.strptime(m_dict['data_hora'], '%Y-%m-%d %H:%M:%S')
+                # Ajusta para horário de Brasília (UTC-3)
+                dt = dt + timedelta(hours=-3)
+                m_dict['data_hora'] = dt.strftime('%d/%m/%Y %H:%M')
+            except:
+                pass
+            movimentacoes_lista.append(m_dict)
+
+        return render_template('comprovante_lote.html',
+                               movimentacoes=movimentacoes_lista,
+                               primeiro=movimentacoes_lista[0])
     except Exception as e:
         flash(f'❌ Erro comprovante_lote: {str(e)}', 'danger')
         return redirect(url_for('historico'))

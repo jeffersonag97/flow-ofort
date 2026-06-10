@@ -123,7 +123,7 @@
                             <td>{{ s['produto'] }}</td>
                             <td><strong>{{ s['quantidade'] }}</strong></td>
                             <td>{{ s['quem'] }}</td>
-                            <td><small>{{ s['data_hora'] }}</small></td>
+                            <td><small>{{ s['data_hora'] | formatar_data }}</small></td>
                         </tr>
                         {% endfor %}
                     </tbody>

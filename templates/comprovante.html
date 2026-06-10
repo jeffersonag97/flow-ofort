@@ -126,7 +126,7 @@
             </div>
             <div class="campo">
                 <label>Data / Hora</label>
-                <span>{{ m['data_hora'] }}</span>
+                <span>{{ m['data_hora'] | formatar_data }}</span>
             </div>
         </div>
     </div>
@@ -147,7 +147,7 @@
 
     <!-- RODAPÉ -->
     <div class="rodape">
-        Documento gerado em {{ m['data_hora'] }} — Protocolo #{{ m['id'] }}
+        Documento gerado em {{ m['data_hora'] | formatar_data }} — Protocolo #{{ m['id'] }}
     </div>
 
 </div>
