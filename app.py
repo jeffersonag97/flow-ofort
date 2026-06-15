@@ -2,6 +2,7 @@ from flask import Flask, render_template, request, redirect, url_for, flash
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from werkzeug.security import check_password_hash, generate_password_hash
 import sqlite3
+import os
 from contextlib import contextmanager
 from datetime import datetime, timedelta
 
@@ -832,4 +833,4 @@ def logout():
     
 
 if __name__ == '__main__':
-    app.run(debug=True, port=5001)
+    app.run(debug=False, host='0.0.0.0', port=int(os.environ.get('PORT', 5001)))
